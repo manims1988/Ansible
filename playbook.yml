@@ -1,0 +1,581 @@
+---
+- name: Complete Ansible Demo
+  become: yes
+  gather_facts: true
+  hosts: master
+  vars_files: 
+  vars:
+   - var2: 'ansible complete demo task'
+   - username: sammy
+   - home: /home/sammy
+   - greeting: Hello world!
+   - continents:
+      - Africa
+      - Asia
+      - South America
+      - North America
+      - Europe
+   - country: ['India','USA','China','Japan']
+   - service: [sendmail,httpd,chrony,bind,sshd]
+   - package: [bc,net-tools,httpd,tree,nginx]
+   - pathis: /tmp/rebootfile
+   - sudoers: [vagrant,linuxuser,consul,terraform,argo]
+   - files:
+      - { dir: "folder1", file: "fileA"}
+      - { dir: "folder2", file: "fileB"}
+      - { dir: "folder3", file: "fileC"}
+      - { dir: "folder4", file: "fileD"}
+   - folder: [folder1,folder2,folder3,folder4]
+   - sshuser: [keyuser,mainuser,linuxuser,pythonuser,rubyuser]
+   - myfiles:
+      - { source: "play1", destination: "/tmp/{{ ansible_hostname }}_mani1.txt", permission: "0755" }
+      - { source: "play2", destination: "/home/vagrant/{{ ansible_hostname }}_mani2.txt", permission: "0644" }
+   - nameage:
+      - { name: "xavier", age: "40" }
+      - { name: "paul", age: "22" }
+      - { name: "pierre", age: "25" }
+
+  tags:
+   - firstplay
+
+  tasks:
+
+   - name: capture output of id command
+      command: id -un
+      register: login
+     tags:
+      - variable
+
+   - debug: var=login
+     tags:
+      - variable
+
+   - name: Include vars file
+     include_vars: vars.yaml
+     tags:
+      - enablessh
+
+   - name: Ensure ssh {{ authentication }} value has changed
+     ansible.builtin.lineinfile:
+      path: /etc/ssh/sshd_config
+      regexp: '^PasswordAuthentication'
+      line: PasswordAuthentication yes
+     tags:
+      - enablessh
+
+   - name: print variables
+     debug:
+       msg: "Username: {{ greeting }} {{ username }}, Home dir: {{ continents [0] }}{{ home }}"
+     tags:
+      - variables 
+
+   - name: print country name
+     debug:
+       msg: "{{ item }}"
+     with_items:
+       - "{{ country }}"
+     tags:
+      - variables 
+
+   - name: print special variables
+     debug:
+       msg: "special varaibles {{ ansible_system_vendor }} {{ ansible_ssh_host_key_rsa_public }}"
+     tags:
+      - variables
+
+   - name: install {{ service [2] }}
+     yum:
+      name: "{{ service [2] }}"
+      state: present
+     ignore_errors: true
+     tags:
+      - service
+
+   - name: start {{ service [2] }} service
+     systemd:
+      name: "{{ service [2] }}"
+      state: started
+      enabled: yes
+     ignore_errors: true
+     tags:
+      - service
+
+   - name: reload {{ service [2] }} service
+     systemd:
+      name: "{{ service [2] }}"
+      state: reloaded
+     ignore_errors: true
+     tags:
+      - service
+
+   - name: restart {{ service [2] }} service
+     systemd:
+      name: "{{ service [2] }}"
+      state: restarted
+     ignore_errors: true
+     tags:
+      - service
+
+   - name: daemon reload {{ service [2] }}
+     systemd:
+      daemon-reload: yes
+     tags:
+      - service
+     ignore_errors: true
+
+   - name: stop {{ service [2] }}
+     systemd:
+      name: "{{ service [2] }}"
+      state: stopped
+     ignore_errors: true
+     tags:
+      - stopservice
+
+   - name: create a simple directory
+     file:
+      path: /tmp/folder/
+      state: directory
+      owner: root
+
+   - name: create a simple directory
+     file:
+      path: /tmp/folder/
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+     become: yes
+     tags:
+      - createdirectory
+
+   - name: create a path
+     file:
+      path: /tmp/folder/1/2/3/4
+      recurse: yes
+      state: directory
+      owner: root
+      group: root
+      mode: 0755
+     tags:
+      - mnydir
+
+   - name: touch a file
+     file:
+      path: /tmp/folder/1/2/3/4/fichier.txt
+      state: touch
+      owner: root
+      group: root
+      mode: 0755
+     tags:
+      - crefile
+
+   - name: create a symlink
+     file:
+      src: /tmp/folder/1/2/3/4/
+      dest: /tmp/symlink
+      state: link  #hard
+      owner: root
+      group: root
+      mode: 0755
+     tags:
+      - crelink
+
+   - name: remove a file
+     file:
+      path: /tmp/folder/1/2/3/4/fichier.txt
+      state: absent
+     tags:
+      - delfile
+
+   - name: remove path
+     file:
+      path: /tmp/xavki/
+      state: absent
+     tags:
+      - delpath
+
+   - name: Create group
+     group:
+      name: "{{ sshuser [2] }}"
+      state: present
+     tags:
+      - groups
+
+   - name: Create group
+     group:
+      name: sudo
+      state: present
+     tags:
+      - groups
+
+   - name: create {{ sshuser [2] }} user
+     user:
+      name: "{{ sshuser [2] }}"
+      state: present
+      password: "{{ 'password' | password_hash('sha512') }}"
+     tags:
+      - usercreate
+      - sshkey
+
+   - name: create demo user
+     user:
+      name: linuxuser
+      state: present
+      groups: sudo
+      append: yes
+      password: "{{ 'password' | password_hash('sha512') }}"
+     tags:
+      - addinsudo
+  
+   - name: create a file
+     file:
+      path: "{{ pathis }}"
+      state: touch
+      owner: root
+     tags:
+      - createfile
+      - createdirectory
+      - reboot
+
+   - name: check the file exists
+     stat:
+      path: "{{ pathis }}"
+     register: __file_exist
+     tags:
+      - fileoutput
+      - createdirectory
+      - reboot
+      - createfile
+
+   - name: debug the file content
+     debug:
+      var: __file_exist
+     tags:
+      - fileoutput
+      - createdirectory
+      - createfile
+
+   - name: debug the file content
+     debug:
+      var: __file_exist.stat.exists
+     tags:
+      - fileoutput
+      - checkfileexists
+      - createdirectory
+      - createfile
+
+   - name: create a dirrectory if the file exist
+     file:
+      path: /tmp/mydir
+      state: directory
+     when: __file_exist.stat.exists
+     tags:
+      - createdirectory
+
+   - name: create some directories in a xavki dir
+     file:
+      path: /tmp/mani/{{ item }}
+      state: directory
+      recurse: yes
+     with_items:
+      - mani1
+      - mani2
+      - mani3
+      - mani4
+     tags:
+      - withloops
+
+   - name: create some directories in a varfolder dir
+     file:
+      path: /tmp/varfolder/{{ item }}
+      state: directory
+      recurse: yes
+     with_items:
+      - "{{ folder }}"   
+      - "{{ service }}"
+     tags:
+      - withvarloops
+
+   - name: create dirs and files into it
+     file:
+      path: /tmp/mani/{{ item.dir }}/{{ item.file }}
+      state: touch
+     with_items:
+      - { dir: "mani1", file: "fileA"}
+      - { dir: "mani2", file: "fileB"}
+      - { dir: "mani3", file: "fileC"}
+      - { dir: "mani4", file: "fileD"}
+     tags:
+      - withdictionary
+
+   - name: create dirs and files using vars
+     file:
+      path: /tmp/varfolder/{{ item.dir }}/{{ item.file }}
+      state: touch
+     with_items:
+      - "{{ files }}"
+     tags:
+      - withdirvar
+
+   - name: create dirs and files into it
+     file:
+      path: /tmp/{{ item | basename }}
+      state: touch
+     with_fileglob:
+      - play*
+     tags:
+      - fileglobal
+
+   - name: create files
+     file:
+      path: /tmp/{{ item }}
+      state: touch
+     with_inventory_hostnames:
+      - master
+      - docker
+     tags:
+      - filewithhostname
+
+   - name: set the reboot module
+     reboot:
+      msg: "The message before the reboot..."
+      connect_timeout: 5
+      reboot_timeout: 300
+      pre_reboot_delay: 0
+      post_reboot_delay: 30
+      test_command: uptime
+     when: __file_exist.stat.exists
+     tags:
+      - reboot
+
+   - name: reboot validation
+     file:
+      path: /tmp/afterreboot.txt
+      state: touch
+     tags:
+      - reboot 
+
+   - name: generate SSH key
+     openssh_keypair:
+      path: /tmp/ssh_key
+      type: rsa
+      size: 4096
+      state: present
+      force: no
+      owner: vagrant
+      group: vagrant
+     tags:
+      - sshkey
+
+   - name: Add {{ sshuser [2] }} user to the sudoers
+     copy:
+      dest: "/etc/sudoers.d/{{ sshuser [2] }}"
+      content: "{{ sshuser [2] }}  ALL=(ALL)  NOPASSWD: ALL"
+     become: yes
+     tags: 
+      - sshkey
+
+   - name: Deploy SSH Key
+     authorized_key: 
+      user: "{{ sshuser [2] }}"
+      key: "{{ lookup('file', '/tmp/ssh_key.pub') }}"
+      state: present
+     become: yes
+     tags:
+      - sshkey
+
+   - name: touch a file to test delegate 
+     file:
+      path: /tmp/i_delegate.txt
+      state: touch
+      owner: root
+      group: root
+      mode: 0755
+     tags:
+      - delegate
+
+   - name: create a delegate file on localhost with delegation
+     file:
+      state: touch
+      path: /tmp/i_delegate_to_local.txt
+     delegate_to: localhost
+     tags:
+      - delegate
+
+   - name: create a hostname file on localhost with delegation
+     file:
+      state: touch
+      path: "/tmp/{{ inventory_hostname }}.txt"
+     run_once: yes
+     delegate_to: localhost
+     tags:
+      - delegate
+
+  #  - name: debug from all vm
+  #    debug:
+  #     var: var1
+  #     tags:
+  #      - delegate
+
+   - name: debug from delegate 
+     debug:
+      var: var1
+     delegate_to: localhost
+     tags:
+      - delegate
+
+   - name: a simple file copy
+     copy:
+      src: play1
+      dest: /tmp/play1.txt
+      backup: yes 
+      # remote_src: yes
+     tags:
+      - copy
+
+   - name: a simple directory copy
+     copy:
+      src: /tmp/mani
+      dest: /home/vagrant/
+      backup: yes
+     tags:
+      - copy
+
+   - name: copy using variables
+     copy:
+      src: "{{ item.source }}"
+      dest: "{{ item.destination }}"
+      mode: "{{ item.permission }}"
+      backup: yes
+     with_items: "{{ myfiles }}"
+     tags:
+      - copy
+
+   - name: copy files with backup
+     copy:
+      src: "{{ item }}"
+      dest: /tmp/
+      backup: yes
+     with_fileglob:
+      - /root/docker/Dockerfile
+      - /root/docker/*.txt
+      - /root/docker/*.html
+     tags:
+      - copy 
+
+   - name: copy the file content
+     copy:
+      content: |
+         Hi,
+         DevOps team !!
+         we are on {{ ansible_hostname }}
+      dest: /tmp/content.txt
+      backup: yes
+     tags:
+      - copy
+
+   - name: Add devops user to the sudoers
+     copy:
+      dest: "/etc/sudoers.d/devops"
+      content: "devops ALL=(ALL)  NOPASSWORD: ALL"
+      owner: root
+      group: root
+      mode: 0400
+      validate: /usr/sbin/visudo -cf /etc/sudoers.d/vagrant
+     become: yes
+     ignore_errors: true
+     tags: 
+      - copy
+
+   - name: copie du fichier nginx.conf avec check
+     copy:
+      src: httpd.conf
+      dest: /etc/httpd/conf/httpd.conf
+      owner: root
+      group: root
+      mode: 0644
+      validate: /usr/sbin/httpd -t
+      backup: yes
+     ignore_errors: true
+     tags:
+      - copy
+
+   - name: fetch /etc/hosts file 
+     fetch:
+      src: /etc/hosts
+      dest: /home/vagrant/collect_one
+     tags:
+      - fetchfile
+
+   - name: fetch /etc/hosts file with hostname
+     fetch:
+      src: /etc/hosts
+      dest: /home/vagrant/collect_two/hosts_{{ ansible_hostname }}
+     tags:
+      - fetchfile
+
+   - name: fetch /etc/hosts file only not directory
+     fetch:
+      src: /etc/hosts
+      dest: /home/vagrant/hosts_{{ ansible_hostname }}.txt
+      flat: yes
+     tags:
+      - fetchfile
+
+   - name: install {{ package [4] }} package
+     yum:
+      name: "{{ package [4] }}"
+      state: present
+     tags:
+      - fetchfile
+
+   - name: start {{ package [4] }} service
+     systemd:
+      name: "{{ package [4] }}"
+      state: started
+     tags:
+      - fetchfile
+
+   - name: clean the /var/www/html/ directory
+     file:
+      path: "{{ item }}"
+      state: absent
+     with_fileglob:
+      - /var/www/html/*.html
+     tags:
+      - fetchfile
+    
+   - name: fetch files with flat options
+     fetch:
+      src: /etc/hosts
+      dest: /var/www/html/hosts_{{ ansible_hostname }}.txt
+      flat: yes
+     tags:
+      - fetchfile
+
+   - name: create new template
+     template:
+      src: montemplate.txt.j2
+      dest: /tmp/hello.txt
+      owner: vagrant
+      group: vagrant
+      mode: 0755
+      backup: yes
+     tags:
+      - template
+
+   - name: template with loops
+     template:
+      src: montemplate.txt.j2
+      dest: "/tmp/hello_{{ item.name }}.txt"
+     with_items:
+      - "{{ nameage }}"
+     tags:
+      - template
+
+  - name: install nginx
+    apt:
+      name: nginx,curl
+      state: present
+      cache_valid_time: 3600
+      update_cache: yes
