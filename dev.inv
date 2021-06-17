@@ -1,0 +1,11 @@
+[app]
+app1 ansible_host=172.42.42.101
+app2 ansible_host=172.42.42.102
+[db]
+db1 ansible_host=172.42.42.103
+[localhost]
+local ansible_connection=local
+[master:children]
+app
+db
+localhost
