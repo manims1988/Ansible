@@ -41,11 +41,11 @@
 
   tasks:
 
-   - name: capture output of id command
-      command: id -un
-      register: login
-     tags:
-      - variable
+  #  - name: capture output of id command
+  #     command: id -un
+  #     register: login
+  #    tags:
+  #     - variable
 
    - debug: var=login
      tags:
@@ -578,8 +578,8 @@
      yum:
       name: "{{ package [4] }}"
       state: present
-      cache_valid_time: 3600
       update_cache: yes
+     notify: reload_nginx
      tags:
       - nginx
 
@@ -587,10 +587,23 @@
      yum:
       name: "{{ package [5] }}"
       state: present
-      cache_valid_time: 3600
       update_cache: yes
      tags:
       - curl
+  
+   - name: start nginx
+     systemd:
+       name: nginx
+       state: started
+     tags:
+      - nginx 
+
+  handlers:
+   - name: reload_nginx
+     systemd:
+      name: nginx
+      state: reloaded
+
 
 
 
