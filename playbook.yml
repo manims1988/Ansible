@@ -16,6 +16,7 @@
       - South America
       - North America
       - Europe
+      - Austrila
    - country: ['India','USA','China','Japan']
    - service: [sendmail,httpd,chrony,bind,sshd]
    - package: [bc,net-tools,httpd,tree,nginx,curl]
