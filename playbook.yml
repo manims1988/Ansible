@@ -5,6 +5,7 @@
   hosts: master
   vars_files: 
   vars:
+   - nginx_port: 8888
    - var2: 'ansible complete demo task'
    - username: sammy
    - home: /home/sammy
@@ -17,7 +18,7 @@
       - Europe
    - country: ['India','USA','China','Japan']
    - service: [sendmail,httpd,chrony,bind,sshd]
-   - package: [bc,net-tools,httpd,tree,nginx]
+   - package: [bc,net-tools,httpd,tree,nginx,curl]
    - pathis: /tmp/rebootfile
    - sudoers: [vagrant,linuxuser,consul,terraform,argo]
    - files:
@@ -573,9 +574,28 @@
      tags:
       - template
 
-  - name: install nginx
-    apt:
-      name: nginx,curl
+   - name: install {{ package [4] }}
+     yum:
+      name: "{{ package [4] }}"
       state: present
       cache_valid_time: 3600
       update_cache: yes
+     tags:
+      - nginx
+
+   - name: install {{ package [5] }}
+     yum:
+      name: "{{ package [5] }}"
+      state: present
+      cache_valid_time: 3600
+      update_cache: yes
+     tags:
+      - curl
+
+
+
+
+
+
+
+
