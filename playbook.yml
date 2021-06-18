@@ -48,9 +48,9 @@
   #    tags:
   #     - variable
 
-   - debug: var=login
-     tags:
-      - variable
+  #  - debug: var=login
+  #    tags:
+  #     - variable
 
    - name: Include vars file
      include_vars: vars.yaml
