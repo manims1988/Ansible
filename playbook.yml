@@ -52,10 +52,10 @@
   #    tags:
   #     - variable
 
-   - name: Include vars file
-     include_vars: vars.yaml
-     tags:
-      - enablessh
+  #  - name: Include vars file
+  #    include_vars: vars.yaml
+  #    tags:
+  #     - enablessh
 
    - name: Ensure ssh {{ authentication }} value has changed
      ansible.builtin.lineinfile:
