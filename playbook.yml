@@ -727,6 +727,6 @@
 #   hosts: all
 #   become: yes
 #   roles:
-#    - /root/roles/node-exporter/
+#   - node-exporter
 #   tags:
-#    - secondplay
+#    - secondplaybook
