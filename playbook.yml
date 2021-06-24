@@ -727,6 +727,6 @@
   hosts: all
   become: yes
   roles:
-   - node-exporter
+   - /root/roles/node-exporter/
   tags:
    - secondplay
