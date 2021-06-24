@@ -384,6 +384,7 @@
       key: "{{ lookup('file', '/tmp/ssh_key.pub') }}"
       state: present
      become: yes
+     ignore_errors: true
      tags:
       - sshkey
 
@@ -599,12 +600,136 @@
        state: started
      tags:
       - nginx 
+    
+   - name: lineinfile
+     lineinfile: 
+      dest: /tmp/test.conf 
+      line: "test line"
+      state: present
+      create: True
+     tags:
+      - lineinfine
+
+   - name: lineinfile
+     lineinfile:
+      dest: /tmp/test.conf
+      line: "test 2"
+      regexp: "^test$"
+      state: present
+      create: True
+     tags:
+      - lineinfile
+    
+   - name: lineinfile
+     lineinfile:
+      dest: /tmp/test.conf
+      line: 'line replaced with 1st column : \1'
+      regexp: "^test ([0-2])$"
+      backrefs: yes
+      state: present
+      create: True
+     tags:
+      - lineinfile
+
+   - name: lineinfile
+     lineinfile:
+      dest: /tmp/test.conf
+      line: '# \1'
+      regexp: "(^line replaced with 1st column : [0-2])"
+      backrefs: yes
+      state: present
+      create: True
+
+   - name: line in file
+     lineinfile:
+      dest: /tmp/test.conf
+      line: "line added belore"
+      insertbefore: '# line replaced with 1st column : [0-2]'
+      state: present
+      create: True
+     tags:
+      - lineinfile
+
+   - name: lineinfile
+     lineinfile:
+      dest: /tmp/test.conf
+      regexp: "^Ma nouvelle ligne"
+      #line: "^Ma nouvelle ligne"
+      state: absent
+     tags:
+      - lineinfile
+
+
+   - name: lineinfile
+     lineinfile: 
+      dest: /tmp/test.conf
+      regexp: "^#"
+      state: absent
+      backup: yes
+     tags:
+      - lineinfile
+    
+   - name: get facts
+     setup: 
+     tags:
+      - setup
+
+   - name: debug of facts
+     debug: 
+      var: ansible_facts
+     tags:
+      - setup
+
+   - name: setup with register
+     setup: 
+     register: out_facts
+     tags:
+      - setup
+
+   - name: debug of facts show output
+     debug: 
+      var: out_facts
+     tags:
+      - setup
+
+   - name: setup module
+     setup: 
+        filter: ansible_user*
+     register: __out_facts
+     tags:
+      - setup
+
+   - name: setup ouput
+     debug: 
+      var: __out_facts
+     tags:
+      - setup
+
+   - name: debug facts
+     debug: 
+      var: ansible_facts
+     tags:
+      - setup
+
+   - name: hostname
+     debug: 
+      var: ansible_hostname
+     tags:
+      - setup
 
   handlers:
    - name: reload_nginx
      systemd:
       name: nginx
       state: reloaded
+
+- name: install node-exporter
+  hosts: all
+  become: yes
+  roles:
+  - node-exporter
+  tags:
+   - secondplaybook
 
 
 
