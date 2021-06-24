@@ -727,15 +727,6 @@
   hosts: all
   become: yes
   roles:
-  - node-exporter
+   - node-exporter
   tags:
-   - secondplaybook
-
-
-
-
-
-
-
-
-
+   - secondplay
