@@ -723,10 +723,10 @@
       name: nginx
       state: reloaded
 
-- name: install node-exporter
-  hosts: all
-  become: yes
-  roles:
-   - /root/roles/node-exporter/
-  tags:
-   - secondplay
+# - name: install node-exporter
+#   hosts: all
+#   become: yes
+#   roles:
+#    - /root/roles/node-exporter/
+#   tags:
+#    - secondplay
