@@ -4,6 +4,13 @@
   gather_facts: true
   hosts: master
   vars_files: 
+  vars_prompt:
+   - name: myvar
+   - name: environment_api
+     prompt: "which env ? prod/stage/dev"
+     default: testing
+  environment:
+   PATHLIB: "/var/lib/"
   vars:
    - nginx_port: 8888
    - authentication: 'ssh file'
@@ -36,22 +43,155 @@
    - nameage:
       - { name: "xavier", age: "40" }
       - { name: "paul", age: "22" }
-      - { name: "pierre", age: "25" }
+      - { name: "pierre", age: "25" }      
 
   tags:
    - firstplay
 
   tasks:
 
-  #  - name: capture output of id command
-  #     command: id -un
-  #     register: login
-  #    tags:
-  #     - variable
+   - name: Install rsync package
+     yum:
+      name: rsync
+      state: present
+     tags:
+      - sync
 
-  #  - debug: var=login
-  #    tags:
-  #     - variable
+   - name: sync the file 
+     synchronize:
+      src: mani.txt
+      dest: /home/vagrant/mani.txt
+     tags:
+      - sync
+
+   - name: create files and folder
+     shell: |
+      mkdir -p files;for i in $(seq 1000);do touch files/$i;done
+     delegate_to: localhost
+     tags:
+      - sync  
+
+   - name: sync
+     synchronize:
+      src: /root/files/
+      dest: /tmp/files
+     tags:
+      - sync
+
+   - name: demo on assemble
+     shell: |
+      touch /tmp/assemb1 /tmp/assemb2 /tmp/assemb3
+     tags:
+      - assemble 
+
+   - name: write some text on files
+     shell: | 
+      echo "this is assemb1" > /tmp/assemb1
+      echo "this is assemb2" > /tmp/assemb2
+      echo "this is assemb3" > /tmp/assemb3
+     tags:
+      - assemble 
+
+   - name: copy those files 
+     copy:
+      src: "/tmp/{{ item }}"
+      dest: /tmp/assemble/
+     with_items:
+      - assemb1
+      - assemb2
+      - assemb3
+     tags:
+      - assemble
+
+   - name: test assemable
+     assemble:
+      delimiter: "---"
+      src: /tmp/assemble
+      dest: /tmp/myconf.cfg
+     tags:
+      - assemble
+
+   - name: echo the variable
+     shell: echo $PATHLIB
+     register: __output
+     tags:
+      - env
+
+   - name: print
+     debug:
+      var: __output
+     tags:
+      - env
+# run ==> export ENV=Prod
+   - name: echo the variable with lookup
+     shell: echo {{ lookup ('env', 'ENV') }}
+     register: __output
+     tags:
+      - env
+
+   - name: print
+     debug:
+      var: __output.stdout_lines
+     tags:
+      - env
+# run ==> unset ENV
+   - name: echo the variable with lookup
+     shell: echo {{ lookup ('env', 'ENV') | default('stage', True) }}
+     register: __output
+     tags:
+      - env
+
+   - name: print
+     debug:
+      var: __output.stdout_lines
+     tags:
+      - env
+
+   - name: echo the variable with lookup varsprompt 
+     shell: echo {{ myvar }}
+     register: __output
+     tags:
+      - env
+
+   - name: print
+     debug:
+      var: __output.stdout_lines
+     tags:
+      - env
+
+   - name: echo the variable using varsprompt 
+     shell: echo {{ environment_api }}
+     register: __output
+     tags:
+      - env
+
+   - name: print
+     debug:
+      var: __output.stdout_lines
+     tags:
+      - env
+
+   - name: running the complete block
+     block:
+      - name: install fish
+        yum:
+         name: fish
+         state: present
+     when: ansible_os_family == "RedHat"
+     tags:
+      - block
+
+   - name: capture output of id command
+     command: id -un
+     register: output
+     tags:
+      - variable
+
+   - name: print the captured variable
+     debug: 
+      var=output.stdout_lines
+     tags:
+      - variable
 
   #  - name: Include vars file
   #    include_vars: vars.yaml
@@ -692,12 +832,21 @@
      tags:
       - setup
 
-   - name: setup module
+   - name: install tree
+     yum: 
+      name: tree
+      state: present
+     when: ansible_os_family == "RedHat" 
+     tags:
+      - setup
+
+   - name: setup module for user
      setup: 
         filter: ansible_user*
      register: __out_facts
      tags:
       - setup
+
 
    - name: setup ouput
      debug: 
@@ -717,16 +866,198 @@
      tags:
       - setup
 
-  handlers:
-   - name: reload_nginx
-     systemd:
-      name: nginx
-      state: reloaded
+   - name: command with 1st option
+     command:
+      cmd: ls
+     register: __output
+     tags:
+      - command 
 
-# - name: install node-exporter
-#   hosts: all
-#   become: yes
-#   roles:
-#   - node-exporter
-#   tags:
+   - name: debug the 1st output
+     debug:
+      var: __output
+     tags:
+      - command
+ 
+   - name: command with 2nd option
+     command:
+       cmd: ls
+       chdir: /etc/
+     register: __output
+     tags:
+      - command
+
+   - name: debug the 2nd output
+     debug:
+      var: __output
+     tags:
+      - command
+ 
+   - name: command with 3rd option
+     command:
+       argv:
+       - ls
+       - -larth
+     register: __output
+     tags:
+      - command
+
+   - name: debug the 3rd output
+     debug:
+      var: __output
+     tags:
+      - command
+ 
+   - name: create a file to test command 
+     file:
+       path: /tmp/ansiblefile
+       state: touch
+     tags:
+      - command
+
+   - name: command with 4th option
+     command: 
+       cmd: ls -lath /tmp
+       creates: /tmp/ansiblefile
+     register: __output
+     tags:
+      - command
+
+   - name: debug the 4th output
+     debug:
+       var: __output
+     tags:
+      - command
+ 
+   - name: command with 5th option
+     command: 
+       cmd: ls -lath /tmp
+       removes: /tmp/xavki
+     tags:
+      - command
+ 
+   - name: shell with 1st option
+     shell: cat /etc/hosts | grep 127
+     register: __output
+     tags:
+      - shell
+
+   - name: debug 1st output 
+     debug:
+       var: __output
+     tags:
+      - shell
+ 
+   - name: shell with 2nd option
+     shell: |
+       cat /etc/hosts
+       ls /etc/
+     register: __output
+     tags:
+      - shell
+ 
+   - name: debug 2nd output
+     debug:
+       var: __output
+     tags:
+      - shell
+
+   - name: shell with 3rd option
+     shell: echo "Hello $MAVAR"
+     environment:
+       MAVAR: "Ansible"
+     register: __output
+     tags:
+      - shell
+ 
+   - name: uri
+     uri:
+       url: http://xavki.blog
+       method: GET
+       validate_certs: False
+     tags:
+      - uri 
+ 
+   - name: uri
+     uri:
+       url: http://xavki.blog
+       method: GET
+       validate_certs: False
+       status_code: 200
+     tags:
+      - uri
+
+   - name: uri
+     uri:
+       url: https://httpbin.org/status/500
+       method: POST
+       status_code: [200,201,301]
+       validate_certs: False
+     tags:
+      - uri
+
+   - name: uri
+     uri:
+       url: http://httpbin.org/get
+       return_content: yes
+       method: GET
+     register: __content
+     tags:
+      - uri
+
+   - name: debug
+     debug:
+       var: __content.content
+     tags:
+      - uri
+
+   - name: uri
+     uri:
+       url: https://httpbin.org/get
+       method: GET
+       return_content: yes
+       validate_certs: False
+       body_format: json
+     register: __body
+     tags:
+      - uri
+
+   - name: debug
+     debug:
+       var: __body.json.url
+     tags:
+      - uri
+
+   - name: uri
+     uri:
+       url: http://xavki.blog
+       return_content: yes
+       method: GET
+       validate_certs: False
+     register: __content
+     failed_when: " 'xavki' not in __content.content"
+     tags:
+      - uri
+
+   - name: uri
+     uri:
+       url: https://httpbin.org/basic-auth/toto/test
+       user: "toto"
+       password: "test"
+       method: GET
+       validate_certs: False
+     tags:
+      - uri
+
+  handlers:
+    - name: reload_nginx
+      systemd:
+       name: nginx
+       state: reloaded
+#  - name: install node-exporter
+#    hosts: all
+#    become: yes
+#    roles:
+#    - node-exporter
+#    tags:
 #    - secondplaybook
