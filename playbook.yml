@@ -43,40 +43,354 @@
    - nameage:
       - { name: "xavier", age: "40" }
       - { name: "paul", age: "22" }
-      - { name: "pierre", age: "25" }      
-
+      - { name: "pierre", age: "25" }
+   - ourmap:
+      hello: world     
+      players:
+       cricket: 'scahin' 
+       basketball: 'coronoll'
+       hockey: 'ravinder'
+   - loopvars:
+      - state: 28
+      - color: 120
+      - bird: 'peakcock'
+      - animal: 'tiger'
+   - loopvars1:
+      - day: "night"
+        good: 'bad' 
+      - day: "morning"
+        good: 'fine'
+   - ourlist:
+      - a: 1
+        b: 2
+      - c: 3
+      - d: 4
+   - newmap:
+      a : 
+         - 1
+         - 2
+      b : [3]
+      c :
+         - 4
+   - varmap:
+      a: [1,2]
+      b: [3]
+      c: [4]
+   - runtask: true 
+   - saygoodbye: false 
+   - a: 1 
+   - b: [2,3]
+   - employee: 
+      name: 'mike'
+      age: 34
+      gender: 'male'
+      work: 'goverment employee'
+    
   tags:
    - firstplay
 
   tasks:
+   - name: find the files
+     find:
+      paths: /root/
+      patterns: '*.yml'
+     register: filename
+     tags:
+      - findfile
 
-   - name: Install rsync package
+   - name: check the content
+     debug: 
+      msg: "{{ filename }}"
+     tags:
+      - findfile
+
+   - name: check the content with path
+     debug: 
+      msg: "{{ item.path }}"
+     with_items: "{{ filename.files }}"
+     tags:
+      - findfile
+
+   - name: create file based on when condition
+     block: 
+      - name: create sample file
+        file:
+         path: /root/saveenvfile1
+         state: touch
+
+      - name: check sample file created
+        stat:
+         path: /root/saveenvfile1
+        register: saveenvfile
+
+      - name: checking wait for file
+        wait_for:
+         path: "{{ saveenvfile.stat.path }}"
+         search_regex: "end"
+         delay: 10
+         sleep: 5
+         timeout: 300
+        when: saveenvfile.stat.exists
+
+      - name: pause to get some sensitive input
+        pause:
+         prompt: 'press enter' 
+         echo: yes 
+         seconds: 5
+  
+      - name: check the file status 
+        debug: 
+         msg: "{{ saveenvfile }}"
+        when: saveenvfile.stat.exists == true
+
+      - name: copy the files
+        copy:
+         src: /root/Dockerfile
+         dest: /tmp/
+         mode: 0777
+        when: saveenvfile.stat.exists
+
+      - name: synchronize the files from app1 to app2
+        synchronize:
+         src: /root/app1.txt 
+         dest: /root/app1.txt
+         mode: pull
+        delegate_to: app2
+        register: syncfile
+        # when: saveenvfile.stat.exists
+
+      - name: check status
+        debug:
+         msg: '{{ syncfile.changed }}'
+
+     tags:
+      - filewhen
+
+   - name: copy cat the file using single variable ansible-playbook playbook.yml -e filename=Dockerfile -t copycat1 
+     copy:
+      src: /root/{{ filename }}
+      dest: /tmp/
+     tags:
+      - copycat1
+
+   - name: copy cat the file using double variable ansible-playbook playbook.yml -e filename=vars.yaml -e path=/root/ -t copycat2
+     copy:
+      src: "{{ path }}{{ filename }}"
+      dest: /tmp/
+     tags:
+      - copycat2
+
+   - name: looping dictionary
+     debug:
+      msg: 'hello, {{ item }}'
+     loop: '{{ employee|dict2items }}'
+     tags:
+      - loop5
+
+   - name: looping dictionary
+     debug:
+      msg: 'hello, {{ item.value }}'
+     loop: '{{ employee|dict2items }}'
+     tags:
+      - loop7
+
+   - name: looping dictionary
+     debug:
+      msg: 'hello, {{ item.key }} == {{ item.value }}'
+     loop: '{{ employee|dict2items }}'
+     tags:
+      - loop6
+
+   - name: looping dictionary
+     debug:
+      msg: 'hello, {{ item.key }} == {{ item.value }}'
+     loop: '{{ employee|dict2items }}'
+     when: folder[1] == 'folder2'
+     tags:
+      - loopcon
+
+   - name: check when condition using AND
+     debug: 
+      msg: 'Success with and operation, {{ b[0] }}'
+     when: saygoodbye == false and nginx_port == 8888
+     tags:
+      - and
+
+   - name: check when condition using AND
+     debug: 
+      msg: 'Failure with and operation, {{ b[0] }}'
+     when: saygoodbye == false and country[0] == 'Solavia'
+     tags:
+      - and
+
+   - name: check when condition using AND 3 arg
+     debug: 
+      msg: 'success with 3 arguments and operation'
+     when: saygoodbye == false and nameage[0].age == '40' and newmap.a[0] == 1
+     tags:
+      - and
+
+   - name: check when condition using OR 3 arg
+     debug: 
+      msg: 'success with 3 arguments in OR operation'
+     when: runtask == true or nameage[0].age == '40' # or myfiles[1].source == "play1"
+     tags:
+      - or
+
+   - name: check when condition using OR 3 arg
+     debug: 
+      msg: 'success with 3 arguments in OR operation'
+     when: runtask == true or nameage[0].age == '40' # or myfiles[1].source == "play1"
+     tags:
+      - or
+
+   - name: check when condition using OR and AND with 3 arg
+     debug: 
+      msg: 'success with 3 arguments in OR operation'
+     when: (runtask == true and files[1].file == 'fileB') or (nameage[0].age == '40') # or myfiles[1].source == "play1")
+     tags:
+      - andor
+
+   - name: check looping type-1
+     debug: 
+      msg: 'hello, {{ item }}'
+     loop: '{{ continents }}'
+     tags:
+      - loop1
+
+   - name: check looping type-2
+     debug: 
+      msg: 'hello, {{ item }}'
+     loop: '{{ nameage }}'
+     tags:
+      - loop2
+
+   - name: check looping type-3
+     debug: 
+      msg: 'hello, {{ item }}'
+     loop: '{{ loopvars }}'
+     tags:
+      - loop3
+
+   - name: check looping type-4
+     debug: 
+      msg: 'hello, {{ item.day }}'
+     loop: "{{ loopvars1 }}"
+     tags:
+      - loop4
+
+   - name: check when condition using AND 3 arg
+     debug: 
+      msg: '{{ myfiles.[1].source }}'
+    #  when: 
+     tags:
+      - check
+      
+   - name: check when condition
+     debug: 
+      msg: 'hello, {{ b[0] }}'
+     when: saygoodbye == false
+     tags:
+      - vars
+
+   - name: check when condition
+     debug: 
+      msg: 'hello, {{ newmap.a[0] }}'
+     when: runtask == true
+     tags:
+      - vars
+
+   - name: check when condition
+     debug: 
+      msg: 'check not equal to, {{ newmap.a[0] }}'
+     when: runtask != true
+     tags:
+      - vars
+
+   - name: check when condition
+     debug: 
+      msg: 'check not equal to with not placed near to when, {{ newmap.a[0] }}'
+     when: not saygoodbye
+     tags:
+      - vars
+
+   - name: display the vars 
+     debug: 
+      msg: 'hello, {{ newmap.a[0] }}'
+     tags:
+      - vars
+
+   - name: print the vars 
+     debug: 
+      msg: 'hello, {{ ourlist[0].b }}'
+     tags:
+      - vars
+
+   - name: print the vars 
+     debug: 
+      msg: 'hello, {{ ourmap.hello }}'
+     tags:
+      - vars
+
+   - name: show the vars
+     debug:
+      msg: 'hello {{ ourmap.players.hockey }}'
+     tags:
+      - vars
+
+   - name: download node exporter 
+     get_url:
+      url: https://github.com/prometheus/node_exporter/releases/download/v1.0.1/node_exporter-1.0.1.linux-amd64.tar.gz
+      dest: /home/vagrant/
+     tags:
+      - geturl
+
+   - name: Test Archive
+     unarchive:
+      src: /home/vagrant/node_exporter-1.0.1.linux-amd64.tar.gz
+      dest: /tmp
+     tags:
+      - unarchive
+
+   - name: install bind 
      yum:
-      name: rsync
-      state: present
+      name: bind
+      state: latest
+     notify: bind start
      tags:
-      - sync
+      - bind
 
-   - name: sync the file 
-     synchronize:
-      src: mani.txt
-      dest: /home/vagrant/mani.txt
-     tags:
-      - sync
+   - name: Install rsync package on block shell
+     block:
+      - name: rsync instll 
+        yum:
+         name: rsync
+         state: present
+        tags:
+         - sync
 
-   - name: create files and folder
-     shell: |
-      mkdir -p files;for i in $(seq 1000);do touch files/$i;done
-     delegate_to: localhost
-     tags:
-      - sync  
+      - name: sync the file 
+        synchronize:
+         src: mani.txt
+         dest: /home/vagrant/mani.txt
+        tags:
+         - sync
 
-   - name: sync
-     synchronize:
-      src: /root/files/
-      dest: /tmp/files
+      - name: create files and folder
+        shell: |
+         mkdir -p files;for i in $(seq 1000);do touch files/$i;done
+        delegate_to: localhost
+        tags:
+         - sync  
+
+      - name: sync
+        synchronize:
+         src: /root/files/
+         dest: /tmp/files
+        tags:
+         - sync
      tags:
-      - sync
+      - block
 
    - name: demo on assemble
      shell: |
@@ -173,13 +487,25 @@
 
    - name: running the complete block
      block:
+      - name: download the fish repo
+        yum_repository: 
+         name: fishrepo
+         description: fishrepo
+         baseurl: https://download.opensuse.org/repositories/shells:fish:release:2/CentOS_7/shells:fish:release:2.repo
+         
+      - name: fish repo file
+        shell: |
+         cd /etc/yum.repos.d/
+         wget https://download.opensuse.org/repositories/shells:fish:release:2/CentOS_7/shells:fish:release:2.repo
+
       - name: install fish
         yum:
          name: fish
          state: present
-     when: ansible_os_family == "RedHat"
+    #  when: ansible_os_family == "RedHat"
+
      tags:
-      - block
+      - fish
 
    - name: capture output of id command
      command: id -un
@@ -1054,10 +1380,60 @@
       systemd:
        name: nginx
        state: reloaded
-#  - name: install node-exporter
-#    hosts: all
-#    become: yes
-#    roles:
-#    - node-exporter
-#    tags:
-#    - secondplaybook
+    
+    - name: bind start
+      systemd:
+       name: named
+       state: started 
+
+- name: install node-exporter
+  hosts: all
+  become: yes
+  roles: [node-exporter]
+  tags: [secondplaybook]
+
+- name: create users
+  hosts: all
+  become: yes
+  roles: [users]
+  tags: [users]
+
+- name: Ansible AWS with vault demo
+  become: yes
+  hosts: localhost
+  connection: local
+  gather_facts: yes
+  vars_files: vars.yaml
+  tags: aws
+  tasks:
+
+   - name: ec2 vm creation
+     ec2:
+      aws_access_key: "{{ access_key }}"
+      aws_secret_key: "{{ secret_key }}"
+      instance_type: t2.micro
+      image: ami-010aff33ed5991201
+      wait: yes
+      count: 1
+      region: ap-south-1
+
+- name: contiuation of first playbook
+  gather_facts: true 
+  become: true 
+  hosts: localhost
+  tags: findfile
+  tasks:
+   
+   - set_fact:
+      filename: "{{ hostvars[item]['filename'] }}" 
+     with_items: "{{ groups['localhost'] }}"
+
+   - name: print the file found
+     debug:
+      msg: "{{ item.path }}"
+     with_items: "{{ filename.files }}"
+
+   - name: check file name
+     stat:
+      path: /root/playbook.yml
+     register: checkplaybookfile
